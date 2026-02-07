@@ -3,6 +3,8 @@ import datetime
 from unsloth import FastLanguageModel
 import sqlite3
 from pathlib import Path
+from sqlite3 import Cursor
+from typing import Any
 
 import torch
 from peft import PeftModel
@@ -138,23 +140,40 @@ def get_random_lines_from_db(con: sqlite3.Connection, table: str = "turkish") ->
     row = cur.execute(
         f"SELECT rowid, timestamp, username, message FROM {table} ORDER BY RANDOM() LIMIT 1"
     ).fetchone()
-    if not row:
-        raise RuntimeError(f"No rows found in table '{table}'.")
-    rowid, _, _, _ = row
-    next_rows = cur.execute(
-        f"SELECT rowid, timestamp, username, message FROM {table} WHERE rowid > ? ORDER BY rowid ASC LIMIT 3",
-        (rowid,)
-    ).fetchall()
-    all_rows = []
-    for _, timestamp, username, message in [row]+next_rows:
-        msg_date = datetime.datetime.fromtimestamp(timestamp)
-        hour = msg_date.strftime("%H:%M")
-        all_rows.append(f"{hour} {username}: {message}")
+    all_rows = get_next_lines(cur, row, table, 3)
 
     return all_rows
 
 
-if __name__ == "__main__":
+def get_next_lines(cur: Cursor, row, table: str, num_next_lines: int = 5) -> list[Any]:
+    if not row:
+        raise RuntimeError(f"No rows found in table '{table}'.")
+    rowid, _, _, _ = row
+    next_rows = cur.execute(
+        f"SELECT rowid, timestamp, username, message FROM {table} WHERE rowid > ? ORDER BY rowid ASC LIMIT ?",
+        (rowid,num_next_lines)
+    ).fetchall()
+    all_rows = []
+    for _, timestamp, username, message in [row] + next_rows:
+        msg_date = datetime.datetime.fromtimestamp(timestamp)
+        hour = msg_date.strftime("%H:%M")
+        all_rows.append(f"{hour} {username}: {message}")
+    return all_rows
+
+
+def get_person_line_from_db(con, table, name):
+    cur = con.cursor()
+    row = cur.execute(
+        f"SELECT rowid, timestamp, username, message FROM {table} WHERE username = ? ORDER BY RANDOM() LIMIT 1",
+        (name,)
+    ).fetchone()
+    all_rows = get_next_lines(cur, row, table, 5)
+
+    print(all_rows)
+    return all_rows
+
+
+def batch_generate():
     con = sqlite3.connect("Turkish.db")
 
     seeds = []
@@ -169,3 +188,13 @@ if __name__ == "__main__":
     con.close()
     print(f"Generated {len(seeds)} conversations.")
     generate_batch(seed_conversations=seeds, output_folder="results", temperature=0.9)
+
+
+def generate_by_name(name: str):
+    con = sqlite3.connect("Turkish.db")
+
+    seed = get_person_line_from_db(con, table="turkish", name=name)
+    generate_batch(seed_conversations=[seed], output_folder="results", temperature=0.9)
+
+if __name__ == "__main__":
+    batch_generate()
