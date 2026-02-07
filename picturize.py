@@ -55,9 +55,9 @@ def draw_lines(lines):
         msg = " ".join(msgs)
         # ts example: "2026-01-27 18:53" -> "18:53"
         time_part = ts.split()[-1][:5]
-        nick_key = nick[:-1].casefold()
+        nick_key = nick.casefold()
         is_np = nick[0] == "*"
-        is_highlight = nick_key in HIGHLIGHT_NICKS
+        is_highlight = nick_key[:-1] in HIGHLIGHT_NICKS
         is_alt = nick_key in alt_nicks
         display.append((time_part, nick, msg.strip(), is_highlight, is_alt, is_np))
 
