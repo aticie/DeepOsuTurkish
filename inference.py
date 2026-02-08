@@ -61,9 +61,8 @@ def generate(
     temperature: float = 0.8,
     top_p: float = 0.95,
 ) -> str:
-    prepared_prompt = prompt.strip()
     inputs = tokenizer(
-        prepared_prompt,
+        prompt,
         return_tensors="pt",
         truncation=True,
         max_length=max_seq_length,
@@ -102,7 +101,7 @@ def generate(
 
 
 def format_prompt(seed_lines: list[str]) -> str:
-    return "\n".join(seed_lines) + "\n"
+    return "\n".join(seed_lines)
 
 
 def generate_batch(
@@ -127,7 +126,7 @@ def generate_batch(
         print(f"[{idx}/{len(seed_conversations)}] Generated conversation.")
 
         conv_path = path / f"{idx}.txt"
-        final_completion = seed[-1] + completion
+        final_completion = prompt + completion
 
         with open(conv_path, "w", encoding="utf-8") as f:
             f.write(final_completion.strip())
@@ -142,7 +141,7 @@ def get_random_lines_from_db(con: sqlite3.Connection, table: str = "turkish") ->
     ).fetchone()
     all_rows = get_next_lines(cur, row, table, 3)
 
-    return all_rows
+    return all_rows + [""]
 
 
 def get_next_lines(cur: Cursor, row, table: str, num_next_lines: int = 5) -> list[Any]:
@@ -158,7 +157,7 @@ def get_next_lines(cur: Cursor, row, table: str, num_next_lines: int = 5) -> lis
         msg_date = datetime.datetime.fromtimestamp(timestamp)
         hour = msg_date.strftime("%H:%M")
         all_rows.append(f"{hour} {username}: {message}")
-    return all_rows
+    return all_rows + [""]
 
 
 def get_person_line_from_db(con, table, name):
@@ -195,6 +194,17 @@ def generate_by_name(name: str):
 
     seed = get_person_line_from_db(con, table="turkish", name=name)
     generate_batch(seed_conversations=[seed], output_folder="results", temperature=0.9)
+
+
+
+def generate_by_hardcoded_text():
+    text = """22:10 Zeus-: !faq tr:to-gmt
+22:10 BanchoBot: Moderatörler, topluluğa ciddi anlamda katkıda bulunan kişilerden teker teker seçilmiştir.
+22:10 BanchoBot: Daha fazla bilgi için wiki sayfasına göz atabilirsiniz: [https://osu.ppy.sh/wiki/People/The_Team/Global_Moderation_Team Global Moderation Team]
+"""
+    seed = text.split("\n")
+    generate_batch(seed_conversations=[seed], output_folder="results", temperature=0.9)
+
 
 if __name__ == "__main__":
     batch_generate()
