@@ -16,7 +16,7 @@ MODEL_SIZE = "4B"
 BASE_MODEL = f"unsloth/Qwen3-{MODEL_SIZE}-Base-unsloth-bnb-4bit"
 ADAPTER_ROOT = Path(f"qwen3-{MODEL_SIZE}-lora")
 DEFAULT_MAX_SEQ_LENGTH = 512
-CONV_END_TOKEN = "<|endconv|>"
+CONV_END_TOKEN = "<|endoftext|>"
 
 
 class StopOnSequence(StoppingCriteria):
@@ -110,7 +110,7 @@ def generate_batch(
     temperature: float = 1.2,
     top_p: float = 0.95,
 ):
-    path = resolve_latest_checkpoint(ADAPTER_ROOT) / output_folder
+    path = Path(output_folder)
     path.mkdir(parents=True, exist_ok=True)
     model, tokenizer, max_seq_length = load_model()
     for idx, seed in enumerate(seed_conversations, start=1):
@@ -141,7 +141,7 @@ def get_random_lines_from_db(con: sqlite3.Connection, table: str = "turkish") ->
     ).fetchone()
     all_rows = get_next_lines(cur, row, table, 3)
 
-    return all_rows + [""]
+    return all_rows
 
 
 def get_next_lines(cur: Cursor, row, table: str, num_next_lines: int = 5) -> list[Any]:
