@@ -306,7 +306,7 @@ class SceneRenderer:
         font = ImageFont.truetype(str(self.font_path), self.options.font_size)
         formatted_lines = [LinkFormatter.format(line).text for line in lines]
         image_width = find_longest_line(font, formatted_lines) + 50
-        image_height = 345 - (28 * (11 - len(lines)))
+        image_height = int(345 - (self.options.font_size * (12 - len(lines))))
         bgs = [path for path in Path("screenshots").iterdir()]
         random_bg = random.choice(bgs)
         background = PIL.Image.open(str(random_bg))
@@ -366,8 +366,8 @@ class SceneRenderer:
             line_y += line_h
 
         prompt_y = min(
-            int(round(line_y + 2 * geometry.scale)),
-            geometry.draw_height - int(round(24 * geometry.scale)),
+            int(round(line_y - 2 * geometry.scale)),
+            geometry.draw_height - int(round(18 * geometry.scale)),
         )
         painter.draw_text(left, prompt_y, ">|", TEXT_COLOR)
 
